@@ -166,24 +166,35 @@ class ClientProtocol:
         log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
             'validate_command', te-ts))
 
-    def send_command(self, id, command):
+    def send_command(self, id, command, command_result_output_file):
         id = str(id)
-        json_str = self.send_command_and_result_as_json_string(id, command)
+        json_str = self.send_command_and_result_as_json_string(
+            id, command, command_result_output_file)
+
         command_execution_result_dict = json.loads(json_str)
+        command_execution_value = command_execution_result_dict["value"]
+        command_execution_type = command_execution_result_dict["type"]
+
+        if not command_execution_value:  # output value was saved in server
+            return command_execution_result_dict
+
         # BYTES are sent as a base64 string
-        if command_execution_result_dict["type"] == "BYTES":
-            command_execution_result_dict["value"] = base64.b64decode(
-                command_execution_result_dict["value"])
+        if command_execution_type == "BYTES":
+            command_execution_value = base64.b64decode(command_execution_value)
         return command_execution_result_dict
 
-    def send_command_and_result_as_json_string(self, id, command):
+    def send_command_and_result_as_json_string(self, id, command, command_result_output_file):
         id = str(id)
         log.debug("[LATENCY_MEASURE][INIT][{}][command={}]".format(
             'send_command', command))
         ts = time()
         self._message_protocol.send_msg(COMMAND_SEND_COMMAND)
-        self._message_protocol.send_msg(id)
-        self._message_protocol.send_msg(command)
+        command_execution_request = {
+            "instrument_id": id,
+            "command_invocation": command,
+            "command_result_output_file": command_result_output_file
+        }
+        self._message_protocol.send_msg(json.dumps(command_execution_request))
         response_type = self._message_protocol.receive_msg()
         if self.__is_valid_response(response_type):
             command_execution_result_json_str = self._message_protocol.receive_msg()
@@ -216,7 +227,8 @@ class ClientProtocol:
             raise InvalidPathException(err)
 
         te = time()
-        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format('send_file', te - ts))
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'send_file', te - ts))
 
         return response
 
@@ -229,13 +241,15 @@ class ClientProtocol:
 
         if not self.__is_valid_response(response_type):
             error_message = self._message_protocol.receive_msg()
-            log.error("Error requesting remote file '{}' : {}".format(remote_file_name, error_message))
+            log.error("Error requesting remote file '{}' : {}".format(
+                remote_file_name, error_message))
             raise OpenLISAException(error_message)
 
         file_bytes = self._message_protocol.receive_msg(decode=False)
 
         te = time()
-        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format('get_file', te - ts))
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'get_file', te - ts))
 
         return file_bytes
 
@@ -249,7 +263,8 @@ class ClientProtocol:
         self._message_protocol.send_msg(str(capture_stdout))
         self._message_protocol.send_msg(str(capture_stderr))
         status_code = str(self._message_protocol.receive_msg())
-        log.info("Status code after remote bash command execution: {}".format(status_code))
+        log.info(
+            "Status code after remote bash command execution: {}".format(status_code))
 
         if capture_stdout:
             stdout = str(self._message_protocol.receive_msg())
@@ -260,7 +275,8 @@ class ClientProtocol:
             log.debug("Remote execution command stderr: {}".format(stderr))
 
         te = time()
-        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format('execute_bash_command', te - ts))
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'execute_bash_command', te - ts))
 
         return status_code, stdout, stderr
 

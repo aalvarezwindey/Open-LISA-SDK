@@ -158,16 +158,16 @@ class SDK:
             print(e)
             return False
 
-    def send_command(self, instrument_id, command_invocation, response_format=None, convert_result_to=None):
+    def send_command(self, instrument_id, command_invocation, command_result_output_file=None, response_format=None, convert_result_to=None):
         if response_format == SDK_RESPONSE_FORMAT_JSON or (
                 response_format == None and self._default_response_format == SDK_RESPONSE_FORMAT_JSON):
             # If response format is json convert_result_to is ignored
-            return self._client_protocol.send_command_and_result_as_json_string(instrument_id, command_invocation)
+            return self._client_protocol.send_command_and_result_as_json_string(instrument_id, command_invocation, command_result_output_file)
 
         command_execution_result = self._client_protocol.send_command(
-            instrument_id, command_invocation)
+            instrument_id, command_invocation, command_result_output_file)
 
-        if not convert_result_to:
+        if not convert_result_to or command_result_output_file:
             return command_execution_result
 
         original_value = command_execution_result["value"]
