@@ -2,6 +2,7 @@
 # at port 8080 and with ENV=test
 # Example: python main.py  --env test --mode TCP --tcp_port 8080 --log-level INFO
 import json
+import os
 
 import pytest
 
@@ -165,3 +166,42 @@ def test_instrument_CRUDs():
         sdk.get_instrument(instrument_id=deleted_instrument["id"])
 
     sdk.disconnect()
+
+def test_filesystem():
+    sdk = SDK(log_level="ERROR")
+    sdk.connect_through_TCP(host=LOCALHOST, port=SERVER_PORT)
+
+    # Get sandbox filesystem structure
+    expected_sandbox_structure = {} # TODO
+    result = sdk.get_directory_structure("sandbox", response_format="PYTHON") # NOTE: sandbox, clibs and database will be enums?
+    assert result == expected_sandbox_structure
+
+    # create new folder and assert that is created
+    sdk.create_directory("sandbox", "new_folder")
+    expected_sandbox_structure_with_new_folder = {} # TODO
+    result = sdk.get_directory_structure("sandbox", response_format="PYTHON")
+    assert result == expected_sandbox_structure_with_new_folder
+
+    # send file to new folder and get again from server with new name
+    mock_img_path =  os.path.join(os.path.dirname(__file__), "/mock_img.jpg")
+    target_file = "sandbox/new_folder/remote_img.jpg"
+    sdk.send_file(str(mock_img_path), file_target_name=target_file)
+    result = sdk.get_directory_structure("sandbox", response_format="PYTHON")
+    # TODO: assert that target_file exists in result
+    file_target_name = "img_from_server.jpg"
+    sdk.get_file(target_file, file_target_name=file_target_name)
+    # TODO: assert that file_target_name exists in os.path.dirname(__file__) and delete it
+    # TODO: assert that file bytes are the same with mock_img
+
+    sdk.delete_file(remote_file=target_file)
+    result = sdk.get_directory_structure("sandbox", response_format="PYTHON")
+    # TODO: assert that target_file does not exist in result
+
+    sdk.delete_directory(remote_path="sandbox/new_folder")
+    result = sdk.get_directory_structure("sandbox", response_format="PYTHON")
+    # TODO: assert that new_folder does not exist in result
+
+
+
+
+

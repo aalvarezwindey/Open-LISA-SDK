@@ -21,6 +21,10 @@ COMMAND_GET_INSTRUMENT_COMMANDS = "GET_INSTRUMENT_COMMANDS"
 COMMAND_VALIDATE_COMMAND = "VALIDATE_COMMAND"
 COMMAND_SEND_COMMAND = "SEND_COMMAND"
 COMMAND_GET_FILE = "GET_FILE"
+COMMAND_DELETE_FILE = "DELETE_FILE"
+COMMAND_GET_DIRECTORY_STRUCTURE = "GET_DIRECTORY_STRUCTURE"
+COMMAND_CREATE_DIRECTORY = "CREATE_DIRECTORY"
+COMMAND_DELETE_DIRECTORY = "DELETE_DIRECTORY"
 COMMAND_SEND_FILE = "SEND_FILE"
 COMMAND_EXECUTE_BASH = "EXECUTE_BASH"
 # Only available when server is running in test mode
@@ -252,6 +256,88 @@ class ClientProtocol:
             'get_file', te - ts))
 
         return file_bytes
+
+    def delete_file(self, remote_file):
+        log.debug("[LATENCY_MEASURE][INIT][{}]".format('delete_file'))
+        ts = time()
+        self._message_protocol.send_msg(COMMAND_DELETE_FILE)
+        self._message_protocol.send_msg(remote_file)
+        response_type = str(self._message_protocol.receive_msg())
+
+        if not self.__is_valid_response(response_type):
+            error_message = self._message_protocol.receive_msg()
+            log.error("Error deleting remote file '{}' : {}".format(
+                remote_file, error_message))
+            raise OpenLISAException(error_message)
+
+        te = time()
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'delete_file', te - ts))
+
+        return
+
+    def get_directory_structure_as_json_string(self, remote_path):
+        log.debug("[LATENCY_MEASURE][INIT][{}]".format('get_directory_structure'))
+        ts = time()
+        self._message_protocol.send_msg(COMMAND_GET_DIRECTORY_STRUCTURE)
+        self._message_protocol.send_msg(remote_path)
+        response_type = str(self._message_protocol.receive_msg())
+
+        if not self.__is_valid_response(response_type):
+            error_message = self._message_protocol.receive_msg()
+            log.error("Error getting remote directory structure '{}' : {}".format(
+                remote_path, error_message))
+            raise OpenLISAException(error_message)
+        else:
+            directory_structure_as_json_string = self._message_protocol.receive_msg()
+            te = time()
+            log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+                'get_directory_structure', te - ts))
+            return directory_structure_as_json_string
+
+
+    def get_directory_structure(self, remote_path):
+        return json.loads(self.get_directory_structure_as_json_string(remote_path))
+
+    def create_directory(self, remote_path, new_directory_name):
+        log.debug("[LATENCY_MEASURE][INIT][{}]".format('create_directory'))
+        ts = time()
+        self._message_protocol.send_msg(COMMAND_CREATE_DIRECTORY)
+        self._message_protocol.send_msg(remote_path)
+        self._message_protocol.send_msg(new_directory_name)
+        response_type = str(self._message_protocol.receive_msg())
+
+        if not self.__is_valid_response(response_type):
+            error_message = self._message_protocol.receive_msg()
+            log.error("Error creating remote directory '{}' : {}".format(
+                remote_path, error_message))
+            raise OpenLISAException(error_message)
+
+        te = time()
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'create_directory', te - ts))
+
+        return
+
+    def delete_directory(self, remote_path):
+        log.debug("[LATENCY_MEASURE][INIT][{}]".format('delete_directory'))
+        ts = time()
+        self._message_protocol.send_msg(COMMAND_DELETE_DIRECTORY)
+        self._message_protocol.send_msg(remote_path)
+        response_type = str(self._message_protocol.receive_msg())
+
+        if not self.__is_valid_response(response_type):
+            error_message = self._message_protocol.receive_msg()
+            log.error("Error deleting remote directory '{}' : {}".format(
+                remote_path, error_message))
+            raise OpenLISAException(error_message)
+
+        te = time()
+        log.debug("[LATENCY_MEASURE][FINISH][{}][ELAPSED={} seconds]".format(
+            'delete_directory', te - ts))
+
+        return
+
 
     def execute_bash_command(self, command, capture_stdout, capture_stderr):
         log.debug("[LATENCY_MEASURE][INIT][{}]".format('execute_bash_command'))

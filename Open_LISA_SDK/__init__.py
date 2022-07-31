@@ -202,6 +202,19 @@ class SDK:
         with open(file_target_name, "wb") as file:
             file.write(file_bytes)
 
+    def delete_file(self, remote_file):
+        return self._client_protocol.delete_file(remote_file)
+
+    def get_directory_structure(self, remote_path, response_format=None):
+        directory_structure = self._client_protocol.get_directory_structure_as_json_string(remote_path)
+        return self.__format_response(directory_structure, response_format)
+
+    def create_directory(self, remote_path, new_directory):
+        return self._client_protocol.create_directory(self, remote_path, new_directory)
+
+    def delete_directory(self, remote_path):
+        return self._client_protocol.delete_directory(remote_path)
+
     def execute_bash_command(self, command, capture_stdout=False, capture_stderr=False):
         return self._client_protocol.execute_bash_command(command, capture_stdout, capture_stderr)
 
